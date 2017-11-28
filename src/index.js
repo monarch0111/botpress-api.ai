@@ -38,7 +38,7 @@ const contextRemove = userId => name => {
 }
 
 const incomingMiddleware = (event, next) => {
-  let shortUserId = _.get(event, 'user.id') || ''
+  let shortUserId = _.get(event, 'user.web_session_id') || _.get(event, 'user.id') || ''
   if (shortUserId.length > 36) {
     shortUserId = crypto.createHash('md5').update(shortUserId).digest("hex")
   }
