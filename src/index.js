@@ -43,7 +43,7 @@ const incomingMiddleware = (event, next) => {
     shortUserId = crypto.createHash('md5').update(shortUserId).digest("hex")
   }
 
-  if (["message", "postback", "text", "quick_reply"].includes(event.type)) {
+  if (["message", "postback", "text", "quick_reply", "location"].includes(event.type)) {
     
     service(shortUserId, event.payload || event.text)
     .then(({data}) => {
