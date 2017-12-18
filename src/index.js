@@ -43,6 +43,9 @@ const incomingMiddleware = (event, next) => {
     shortUserId = crypto.createHash('md5').update(shortUserId).digest("hex")
   }
 
+  const platform_prefix = {"facebook": "fb", "webchat": "wb"}
+  shortUserId = `${platform_prefix[event.platform]}:${shortUserId}`
+
   if (["message", "postback", "text", "quick_reply", "location"].includes(event.type)) {
     
     service(shortUserId, event.payload || event.text)
