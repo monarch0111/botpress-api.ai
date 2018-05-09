@@ -9,17 +9,17 @@ import axios from 'axios'
 let config = null
 let service = null
 
-const getClient = () => {
+const getClient = (brand_id) => {
   return axios.create({
     baseURL: 'https://api.api.ai/v1',
     timeout: process.env.BOTPRESS_HTTP_TIMEOUT || 5000,
-    headers: {'Authorization': 'Bearer ' + config.accessToken}
+    headers: {'Authorization': 'Bearer ' + JSON.parse(config.accessToken)[brand_id]}
   })
 }
 
 const setService = () => {
-  service = (userId, text) => {
-    return getClient().post('/query?v=20170101', {
+  service = (userId, text, brand_id) => {
+    return getClient(brand_id).post('/query?v=20170101', {
       query: text,
       lang: config.lang,
       sessionId: userId
@@ -45,14 +45,13 @@ const incomingMiddleware = (event, next) => {
 
   const platform_prefix = {"facebook": "fb", "webchat": "wb"}
   shortUserId = `${platform_prefix[event.platform]}:${shortUserId}`
-
   if (["message", "postback", "text", "quick_reply", "location"].includes(event.type)) {
-    
-    service(shortUserId, event.payload || event.text)
+
+    service(shortUserId, event.payload || event.text, _.get(event, 'user.brand_id') || "1")
     .then(({data}) => {
       const {result} = data
-      if (config.mode === 'fulfillment' 
-        && result.fulfillment 
+      if (config.mode === 'fulfillment'
+        && result.fulfillment
         && result.fulfillment.speech
         && result.fulfillment.speech.length > 0) {
         event.bp.middlewares.sendOutgoing({
@@ -85,7 +84,6 @@ const incomingMiddleware = (event, next) => {
         err = '[' + err.code + '] Type:' + err.errorType + ':', err.errorDetails
       }
 
-      console.log(error.stack)
 
       event.bp.logger.warn('botpress-api.ai', 'API Error. Could not process incoming text: ' + err);
       next()
@@ -97,7 +95,7 @@ const incomingMiddleware = (event, next) => {
         remove: contextRemove(shortUserId)
       }
     }
-    
+
     next()
   }
 }
@@ -112,7 +110,7 @@ module.exports = {
 
   init: async function(bp, configurator) {
     checkVersion(bp, __dirname)
-    
+
     bp.middlewares.register({
       name: 'apiai.incoming',
       module: 'botpress-api.ai',
@@ -121,7 +119,7 @@ module.exports = {
       order: 10,
       description: 'Process natural language in the form of text. Structured data with an action and parameters for that action is injected in the incoming message event.'
     })
-    
+
     config = await configurator.loadAll()
     setService()
   },
